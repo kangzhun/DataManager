@@ -6,9 +6,15 @@ import os
 from bs4 import BeautifulSoup
 
 from config import HERE
+from utils import seg_doc
 
 CORPUS_PATH = os.path.join(HERE, "data/biology_corpus/book")
 CLEAR_CORPUS_PATH = os.path.join(HERE, "data/biology_corpus/clear_book", "biology_book.txt")
+SEG_CORPUS_PATH = os.path.join(HERE, "data/biology_corpus/clear_book", "seg_biology_book.txt")
+
+
+def _claer(doc):
+    return "\n".join([line for line in doc.replace(u"　", u"").split('\n') if line.strip()])
 
 
 def load_books(path):
@@ -26,9 +32,19 @@ def save_books_txt(path, doc):
     with open(path, 'a+') as fw:
         fw.write(doc.encode('utf-8'))
 
+
+def save_seg_books_txt(corpus_path, target_path):
+    with open(corpus_path, 'r') as fr:
+        doc = fr.read()
+
+    if doc:
+        with open(target_path, 'w') as fw:
+            words, flags = seg_doc(doc)
+            fw.write(" ".join(words).encode('utf-8'))
+
 if __name__ == '__main__':
-    docs = load_books(CORPUS_PATH)
-    for doc in docs:
-        lines = [line for line in doc.replace(u"　", u"").split('\n') if line.strip()]
-        save_books_txt(CLEAR_CORPUS_PATH, "\n".join(lines))
+    # docs = load_books(CORPUS_PATH)
+    # for doc in docs:
+    #     save_books_txt(CLEAR_CORPUS_PATH, _claer(doc))
+    save_seg_books_txt(CLEAR_CORPUS_PATH, SEG_CORPUS_PATH)
 
