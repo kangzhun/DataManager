@@ -5,10 +5,7 @@ import os
 
 import struct
 
-from config import HERE
-
-SOGOU_LEXICON_PATH = os.path.join(HERE, "data/biology_corpus/sogou_lexicon")
-DICTIONARY_PATH = os.path.join(HERE, "data/biology_corpus/dictionary")
+from config import HERE, DICTIONARY_PATH, SOGOU_LEXICON_PATH, CUSTOM_DICTIONARY_PATH
 
 
 def load_sogou_lexicon(path):
@@ -113,7 +110,23 @@ def scel2txt(path):
         store(generator, fw)
 
 
+def generate_custom_dictionary(dictionary_path, target_path):
+    dictionary = list()
+    files = glob.glob(r'%s/*.txt' % dictionary_path)
+    for f_name in files:
+        with open(f_name, 'r') as fr:
+            words = [w.strip() for w in fr.readlines() if w.strip()]
+            dictionary.extend(words)
+
+    with open(target_path, 'w') as fw:
+        fw.writelines([w + '\n' for w in set(dictionary)])
+
+
 if __name__ == '__main__':
-    names = load_sogou_lexicon(SOGOU_LEXICON_PATH)
-    for name in names:
-        scel2txt(name)
+    # 加载搜狗细胞词库并写入到txt文件中
+    # names = load_sogou_lexicon(SOGOU_LEXICON_PATH)
+    # for name in names:
+    #     scel2txt(name)
+
+    # 读取txt文件中的所有单词，去除重复单词，写入到custom_dictionary
+    generate_custom_dictionary(DICTIONARY_PATH, CUSTOM_DICTIONARY_PATH)
