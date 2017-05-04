@@ -3,3 +3,5 @@ pysolr
 pymongo
 jieba
 bs4
+py2neo
+pandas

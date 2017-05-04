@@ -107,6 +107,10 @@ def load_xlsx(path, sheets=[], start_row=0, start_col=0):
 
     return ret
 
+
+def _claer(doc):
+    return "\n".join([line for line in doc.replace(u"　", u"").split('\n') if line.strip()])
+
 if __name__ == "__main__":
     # 测试jieba分词
     print seg_doc("你好啊！我是谁谁谁")
