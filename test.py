@@ -19,3 +19,4 @@ print list(selected)
 
 selected = selector.select().where("_.name =~ 'J.*'", "1960 <= _.born < 1970")
 print list(selected)
+movie_graph.delete_all()
