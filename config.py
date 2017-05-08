@@ -38,3 +38,9 @@ SOLR_CORE_MAP = {
 }
 
 SOLR_DEFAULT_ROWS = 50
+
+# noe4j config
+NEO4J_HOST_PORT = "localhost:7474"
+NEO4J_USER = "kangzhun"
+NEO4J_PWD = "741953"
+NEO4J_URL = "http://localhost:7474/db/data/"
