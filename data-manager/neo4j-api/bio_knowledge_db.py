@@ -1,23 +1,25 @@
 # -*- coding: utf-8 -*-
 import json
 import os
-from pprint import pprint
 
-from py2neo import authenticate, Graph, Node, Relationship, Entity
+from pandas import DataFrame
+from py2neo import authenticate, Graph, Node, Relationship
 from py2neo import PropertyDict
 from pymongo import MongoClient
 
 from config import MONGODB_HOST, MONGODB_PORT, MONGODB_DBNAME, MONGODB_BIOLOGY_TRIPLE, HERE, NEO4J_HOST_PORT, \
     NEO4J_USER, NEO4J_PWD, NEO4J_URL
+from const import BIO_CYPER_TEMPLATE
+from logger import BaseLogger
 
 
-class BioKnowledgeDB(object):
-    def __init__(self, object_relationship, data_relationship):
+class BioKnowledgeDB(BaseLogger):
+    def __init__(self, object_relationship, data_relationship, **kwargs):
+        super(BioKnowledgeDB, self).__init__(**kwargs)
         self.triple_docs = self._load_triple_docs()
         self.object_relationship = json.load(open(object_relationship, 'r'))
         self.data_relationship = json.load(open(data_relationship, 'r'))
         authenticate(NEO4J_HOST_PORT, NEO4J_USER, NEO4J_PWD)
-
         self.bio_graph = Graph(NEO4J_URL)
 
     def _load_triple_docs(self):
@@ -31,6 +33,7 @@ class BioKnowledgeDB(object):
     def create_all_nodes(self):
         # 生成node，标签为Biology
         nodes = dict()
+        self.debug('[Start create nodes] triple_docs=%s', len(self.triple_docs))
         for doc in self.triple_docs:
             triple_subject = doc.get("triple_subject", "")         # 主语
             triple_predicate = doc.get("triple_predicate", "")     # 谓语
@@ -59,6 +62,7 @@ class BioKnowledgeDB(object):
 
     def create_all_relationships(self):
         tx = self.bio_graph.begin()
+        self.debug('[Start create nodes] triple_docs=%s', len(self.triple_docs))
         for doc in self.triple_docs:
             triple_subject = doc.get("triple_object", "")          # 主语
             triple_predicate = doc.get("triple_predicate", "")     # 谓语
@@ -77,7 +81,63 @@ class BioKnowledgeDB(object):
         tx.commit()
 
     def delete_all(self):
+        self.debug("start delete all nodes")
         self.bio_graph.delete_all()
+
+    def return_all_node(self):
+        condition = BIO_CYPER_TEMPLATE['all_node']
+        data = list(self.bio_graph.run(condition).data())
+        self.debug('got %s nodes', len(data))
+        return data
+
+    def return_node_property(self, name, node_property):
+        data = None
+        self.debug('search node name=%s, property=%s', name, node_property)
+        if name and node_property:
+            condition = BIO_CYPER_TEMPLATE['node_property'] % (name, node_property)
+            data = self.bio_graph.run(condition).data()
+            self.debug('got property_value=%s', data)
+            if not data:
+                self.debug('search equal node name=%s, property=%s', name, node_property)
+                condition = BIO_CYPER_TEMPLATE['equal_node_property'] % (name, node_property)
+                data = self.bio_graph.run(condition).data()
+                self.debug('got property_value=%s', data)
+        else:
+            self.warn('@@@@@@@@@@@@@@ unexpected value!!!!!!')
+        return data
+
+    def return_node(self, name):
+        data = None
+        self.debug('search node name=%s', name)
+        if name:
+            condition = BIO_CYPER_TEMPLATE['node_data'] % name
+            data = self.bio_graph.run(condition).data()
+            self.debug('got node_data=%s', data)
+        else:
+            self.warn('@@@@@@@@@@@@@@ unexpected value!!!!!!')
+        return data
+
+    def return_neighbors_property(self, name, relationship, node_property):
+        data = None
+        self.debug('search node name=%s, relationship=%s, property=%s', name, relationship, node_property)
+        if name and node_property:
+            condition = BIO_CYPER_TEMPLATE['neighbors_property'] % (name, relationship, node_property)
+            data = self.bio_graph.run(condition).data()
+            self.debug('got property_value=%s', data)
+        else:
+            self.warn('@@@@@@@@@@@@@@ unexpected value!!!!!!')
+        return data
+
+    def return_neighbors(self, name, relationship):
+        data = None
+        self.debug('search node name=%s, relationship=%s', name, relationship)
+        if name:
+            condition = BIO_CYPER_TEMPLATE['neighbors_data'] % (name, relationship)
+            data = self.bio_graph.run(condition).data()
+            self.debug('got node_data=%s', data)
+        else:
+            self.warn('@@@@@@@@@@@@@@ unexpected value!!!!!!')
+        return data
 
 if __name__ == "__main__":
     bio_object_relation_path = os.path.join(HERE, 'data/biology_corpus/biology_annotation',
@@ -86,5 +146,21 @@ if __name__ == "__main__":
                                           'data_relation.json')
     db = BioKnowledgeDB(bio_object_relation_path, bio_data_relation_path)
     # db.create_all_nodes()
-    db.create_all_relationships()
+    # db.create_all_relationships()
     # db.delete_all()
+
+    all_nodes = db.return_all_node()
+    for node in all_nodes:
+        print node
+
+    node_property = db.return_node_property('哺乳动物', 'biology_character')
+    print node_property
+
+    node = db.return_node('生活垃圾')
+    print node
+
+    neighbors_property = db.return_neighbors_property('桃花', '组成', 'name')
+    print neighbors_property
+
+    neighbors_data = db.return_neighbors('桃花', '组成')
+    print neighbors_data
