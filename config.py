@@ -7,7 +7,8 @@ HERE = os.path.abspath(os.path.dirname(__file__))
 SOGOU_LEXICON_PATH = os.path.join(HERE, "data/biology_corpus/sogou_lexicon")
 DICTIONARY_PATH = os.path.join(HERE, "data/biology_corpus/dictionary")
 CUSTOM_DICTIONARY_PATH = os.path.join(HERE, "data/biology_corpus/dictionary/custom_dictionary.txt")
-BIO_TRIPLE_PATH = os.path.join(HERE, "data/biology_corpus/biology_annotation", "biologyAnnotationOutput_2017-5-3.xlsx")
+BIO_TRIPLE_PATH = os.path.join(HERE, "data/biology_corpus/biology_annotation",
+                               "biologyKnowledgebaseOutput.xlsx")
 BIO_QA_FILES_PATH = os.path.join(HERE, "data/biology_corpus/biology_questions")
 
 # logger config
@@ -39,7 +40,7 @@ SOLR_CORE_MAP = {
 
 SOLR_DEFAULT_ROWS = 50
 
-# noe4j config
+# neo4j config
 NEO4J_HOST_PORT = "localhost:7474"
 NEO4J_USER = "kangzhun"
 NEO4J_PWD = "741953"
