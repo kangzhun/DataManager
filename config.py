@@ -21,6 +21,7 @@ MONGODB_PORT = 27017
 MONGODB_DBNAME = "biology-db"
 MONGODB_BIOLOGY_TRIPLE = "biology-triple"
 MONGODB_BIOLOGY_QA = "biology-qa"
+MONGODB_BIOLOGY_TEMPLATE = "biology-template"
 
 # solr config
 SOLR_HOST = "127.0.0.1"

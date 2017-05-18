@@ -18,8 +18,7 @@ def load_books(path):
     files = glob.glob('%s/*/Text/*' % path)
     for f in files:
         with open(f, 'r') as fr:
-            doc = fr.read()
-            soup = BeautifulSoup(doc, "lxml")
+            soup = BeautifulSoup(fr.read(), "lxml")
             yield soup.get_text()
 
 
