@@ -29,5 +29,31 @@ def write2mongo(path, sheets=[]):
                                    "triple_predicate_index": " ".join(triple_predicate_words),
                                    "triple_object_index": " ".join(triple_object_words)})
 
+
+def triple_count():
+    triple_docs = collection.find()
+    subjects = set()
+    predicates = set()
+    for doc in triple_docs:
+        subject = doc.get('triple_subject', '')
+        predicate = doc.get('triple_predicate', '')
+        if subject:
+            subjects.add(subject)
+        if predicate:
+            predicates.add(predicate)
+
+    print 'subjects=%i, predicates=%i' % (len(subjects), len(predicates))
+
+    with open('subjects.txt', 'w') as fr:
+        for item in subjects:
+            fr.write(item.encode('utf-8'))
+            fr.write('\n')
+
+    with open('predicates.txt', 'w') as fr:
+        for item in predicates:
+            fr.write(item.encode('utf-8'))
+            fr.write('\n')
+
 if __name__ == "__main__":
-    write2mongo(BIO_TRIPLE_PATH)
+    # write2mongo(BIO_TRIPLE_PATH)
+    triple_count()
