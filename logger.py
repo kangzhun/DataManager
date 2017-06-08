@@ -6,22 +6,20 @@ from config import LOGGER_PATH, LOGGER_NAME
 
 
 class BaseLogger(object):
-    def __init__(self, **kwargs):
+    def __init__(self):
         self.logger = logging.getLogger(__name__)
         self.logger.setLevel(logging.DEBUG)
 
         fh = logging.FileHandler(os.path.join(LOGGER_PATH, LOGGER_NAME))
         fh.setLevel(logging.DEBUG)
 
-        fm = logging.Formatter('%(asctime)s - [%(session_id)s] - %(levelname)s - %(message)s')
+        fm = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
         fh.setFormatter(fm)
 
         if not self.logger.handlers:
             self.logger.addHandler(fh)
 
         self.logger.propagate = False
-
-        self.session_id = kwargs.get("session_id", "default-session")
 
     def log_base(self, level, msg, *args, **kwargs):
         log_handler_map = {
@@ -31,7 +29,6 @@ class BaseLogger(object):
             "error": self.logger.error,
             "exception": self.exception
         }
-        kwargs["extra"] = {"session_id": self.session_id}
         msg_str = msg
         if args:
             msg_str = msg % args
@@ -52,5 +49,4 @@ class BaseLogger(object):
         self.log_base("error", msg, *args, **kwargs)
 
     def exception(self, msg, *args, **kwargs):
-        kwargs["extra"] = {"session_id": self.session_id}
         self.logger.exception(msg, *args, **kwargs)
