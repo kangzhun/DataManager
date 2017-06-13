@@ -2,6 +2,7 @@
 import json
 import os
 
+import re
 from py2neo import authenticate, Graph, Node, Relationship
 from py2neo import PropertyDict
 from pymongo import MongoClient
@@ -54,8 +55,11 @@ class BioKnowledgeDB(BaseLogger):
 
             # triple_predicate是否属于数据关系属性
             property_key = self.data_relationship.get(triple_predicate, {}).get('uri', "")
-            if triple_subject and triple_subject not in nodes.keys():  # 主语不为空，且主语不在nodes中，新建节点
+            if not triple_subject or not triple_object:
+                continue
+            if triple_subject not in nodes.keys():  # 主语不在nodes中，新建节点
                 nodes[triple_subject] = PropertyDict({"name": triple_subject})
+                nodes[triple_subject]['label'] = [triple_subject, ]
                 if property_key:  # triple_predicate为数据属性，新建节点并添加属性值
                     if triple_object:
                         nodes[triple_subject][property_key] = [triple_object, ]
@@ -64,9 +68,10 @@ class BioKnowledgeDB(BaseLogger):
                                   "[subject=%s, predicate=%s, object=%s]",
                                   triple_subject, triple_predicate, triple_object)
                 else:  # triple_predicate为关系属性，若triple_object不在nodes中创建新节点
-                    if triple_object and triple_object not in nodes.keys():
-                        nodes[triple_subject] = PropertyDict({"name": triple_subject})
-            else:
+                    if triple_object not in nodes.keys():
+                        nodes[triple_object] = PropertyDict({"name": triple_object})
+                        nodes[triple_object]['label'] = [triple_object, ]
+            else:  # 主语在nodes中，更新节点
                 if property_key:  # triple_predicate为数据属性，新建节点并添加属性值
                     if triple_object:
                         is_exist = nodes.get(triple_subject, {}).get(property_key)
@@ -79,8 +84,8 @@ class BioKnowledgeDB(BaseLogger):
                                   "[subject=%s, predicate=%s, object=%s]",
                                   triple_subject, triple_predicate, triple_object)
                 else:  # triple_predicate为关系属性，若triple_object不在nodes中创建新节点
-                    if triple_object and triple_object not in nodes.keys():
-                        nodes[triple_subject] = PropertyDict({"name": triple_subject})
+                    if triple_object not in nodes.keys():
+                        nodes[triple_object] = PropertyDict({"name": triple_object})
         tx = self.bio_graph.begin()
         self.debug("got nodes=%s", len(nodes))
         for item in nodes.values():  # 遍历所有nodes，创建节点
@@ -103,7 +108,7 @@ class BioKnowledgeDB(BaseLogger):
         :return: 
         """
         tx = self.bio_graph.begin()
-        self.debug('[Start create nodes] triple_docs=%s', len(self.triple_docs))
+        self.debug('[Start create relationships] triple_docs=%s', len(self.triple_docs))
         for doc in self.triple_docs:  # 遍历所有的三元组
             triple_subject = doc.get("triple_object", "")          # 主语
             triple_predicate = doc.get("triple_predicate", "")     # 谓语
@@ -121,9 +126,10 @@ class BioKnowledgeDB(BaseLogger):
                     for key in predicate_info:
                         a_b_relationship[key] = predicate_info[key]
                     tx.create(a_b_relationship)
-                else:
-                    self.warn("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ unexpected node_a=%s or node_b=%s not exist!!!!",
-                              triple_subject, triple_object)
+                else:  # 节点不存在
+                    if not triple_subject.startswith('http'):
+                        self.warn("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ unexpected node_a=%s or node_b=%s not exist!!!!",
+                                  triple_subject, triple_object)
         tx.commit()
 
     def delete_all(self):
@@ -192,23 +198,23 @@ if __name__ == "__main__":
     bio_data_relation_path = os.path.join(HERE, 'data/biology_corpus/biology_annotation',
                                           'data_relation.json')
     db = BioKnowledgeDB(bio_object_relation_path, bio_data_relation_path, 'biology')
-    # db.create_all_nodes()
-    # db.create_all_relationships()
+    db.create_all_nodes()
+    db.create_all_relationships()
     # db.delete_all()
 
-    all_nodes = db.return_all_node()
-    for node in all_nodes:
-        print node
-    print len(all_nodes)
-
-    node_property = db.return_node_property('大脑皮层', 'biology_function')
-    print node_property
-
-    node = db.return_node('生活垃圾')
-    print node
-
-    neighbors_property = db.return_neighbors_property('桃花', 'common_consistedOf', 'name')
-    print neighbors_property
-
-    neighbors_data = db.return_neighbors('桃花', 'common_consistedOf')
-    print neighbors_data
+    # all_nodes = db.return_all_node()
+    # for node in all_nodes:
+    #     print node
+    # print len(all_nodes)
+    #
+    # node_property = db.return_node_property('大脑皮层', 'biology_function')
+    # print node_property
+    #
+    # node = db.return_node('生活垃圾')
+    # print node
+    #
+    # neighbors_property = db.return_neighbors_property('桃花', 'common_consistedOf', 'name')
+    # print neighbors_property
+    #
+    # neighbors_data = db.return_neighbors('桃花', 'common_consistedOf')
+    # print neighbors_data

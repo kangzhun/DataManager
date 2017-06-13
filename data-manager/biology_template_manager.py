@@ -52,7 +52,7 @@ def clear_type(content, priority):
         c_text = c.get_text()
         if p == 1:  # 模板优先级为1， 高优先级模板
             if c_text in relation_attributes.keys():
-                c_text = relation_attributes[c_text]['uri'].replace("#", "_").replace("-", "_").replace(".", "_")
+                c_text = relation_attributes[c_text]['uri']
                 clear_content.append([c_text, ])
             else:
                 logger.warn('@@@@@@@@@@@@@@@@@@@@@@@@@ %s not in relation_attributes', c_text)
@@ -94,15 +94,20 @@ def extract_info(docs):
     """
     logger.debug('>>> start extract_info <<<')
     patterns, keywords = clear_p_content(docs.findAll('td', class_='pcontent'))
-    is_subject = [doc.get_text() == u'TRUE' for doc in docs.findAll('td', class_='subject')]
+    missing_tuple = []
+    for doc in docs.findAll('td', class_='subject'):
+        if doc.get_text == u'TRUE':
+            missing_tuple.append(u'subject')
+        else:
+            missing_tuple.append(u'object')
     priority = [int(doc.get_text()) for doc in docs.findAll('td', class_='priority')]
-    predicate_values = clear_type(docs.findAll('td', class_='type'), priority)
-    predicate_types = [doc.get_text() for doc in docs.findAll('td', class_='usage')]
+    predicates = clear_type(docs.findAll('td', class_='type'), priority)
     info_list = []
     for i in range(len(patterns)):
-        info = {'pattern': patterns[i], 'keywords': keywords[i], 'predicate_values': predicate_values[i],
-                'predicate_type': predicate_types[i], 'priority': priority[i], 'is_subject': is_subject[i]}
+        info = {'pattern': patterns[i], 'key_index': keywords[i], 'predicates': predicates[i],
+                'priority': priority[i] + 1, 'missing_tuple': missing_tuple[i]}
         info_list.append(info)
+        logger.debug('logger=%s', json.dumps(info, ensure_ascii=False))
     logger.debug('>>> end extract_info <<<')
     return info_list
 
@@ -120,3 +125,4 @@ if __name__ == "__main__":
     html_path = os.path.join(HERE, "data/biology_corpus/template_corpus", "template_file.html")
     _docs = load_html(html_path)
     _info_list = extract_info(_docs)
+    write2mongo(_info_list)
