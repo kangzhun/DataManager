@@ -4,6 +4,7 @@ import json
 import os
 from bs4 import BeautifulSoup
 
+import re
 from pymongo import MongoClient
 
 from config import HERE, MONGODB_HOST, MONGODB_PORT, MONGODB_DBNAME, MONGODB_BIOLOGY_TEMPLATE
@@ -33,10 +34,14 @@ def generate_relation_attribute_map(path):
     relation_attributes = dict()
     logger.debug('load biology_property from path=%s, got property_docs=%s', path, len(property_docs))
     for doc in property_docs:
-        uri = doc[3].encode('utf-8')
-        key = uri.replace("common#", "").replace('biology#', "")
-        relation_attributes[key] = {'uri': uri}
-        relation_attributes[uri] = {'uri': uri}
+        uri = doc[3].encode('utf-8').replace('#-', '_').replace('#', '_').replace('-', '_')
+        key = uri.replace("common_", "").replace('biology_', "")
+        print key, uri
+        if key in relation_attributes.keys():
+            relation_attributes[key]['uri'].append(uri)
+        else:
+            relation_attributes[key] = {'uri': [uri, ]}
+        relation_attributes[uri] = {'uri': [uri, ]}
     logger.debug('>>> end generate_relation_attribute_map <<<')
     return relation_attributes
 
@@ -49,11 +54,13 @@ def clear_type(content, priority):
                         'biology_property.xlsx')
     relation_attributes = generate_relation_attribute_map(path)
     for c, p in zip(content, priority):
-        c_text = c.get_text()
+        c_text = c.get_text().replace('#-', '_').replace('#', '_').replace('-', '_')
+        if c_text.startswith('_'):
+            c_text = re.sub('^_', '', c_text)
         if p == 1:  # 模板优先级为1， 高优先级模板
             if c_text in relation_attributes.keys():
-                c_text = relation_attributes[c_text]['uri']
-                clear_content.append([c_text, ])
+                uri = relation_attributes[c_text]['uri']
+                clear_content.append(uri)
             else:
                 logger.warn('@@@@@@@@@@@@@@@@@@@@@@@@@ %s not in relation_attributes', c_text)
                 clear_content.append([])

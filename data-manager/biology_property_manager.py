@@ -22,7 +22,7 @@ def write2mongodb(path):
     for doc in property_docs:
         name = doc[1].encode('utf-8')
         description = doc[2].encode('utf-8')
-        uri = doc[3].encode('utf-8')
+        uri = doc[3].encode('utf-8').replace('#-', '_').replace('#', '_').replace('-', '_')
         if "对象属性" in description:
             doc = {'description': description, 'uri': uri,
                    'name': name, 'type': 'object_relationship'}
