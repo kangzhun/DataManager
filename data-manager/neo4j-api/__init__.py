@@ -37,7 +37,7 @@ def generate_relation_attribute_map(path, object_path, data_path):
         _id = doc[0].encode('utf-8')
         name = doc[1].encode('utf-8')
         description = doc[2].encode('utf-8')
-        uri = doc[3].encode('utf-8')
+        uri = doc[3].encode('utf-8').replace('#-', '_').replace('#', '_').replace('-', '_')
         if "对象属性" in description:
             object_relation_attribute[name] = {'_id': _id, 'description': description, 'uri': uri}
         else:
