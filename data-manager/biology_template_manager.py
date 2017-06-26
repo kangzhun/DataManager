@@ -7,13 +7,14 @@ from bs4 import BeautifulSoup
 import re
 from pymongo import MongoClient
 
-from config import HERE, MONGODB_HOST, MONGODB_PORT, MONGODB_DBNAME, MONGODB_BIOLOGY_TEMPLATE
+from config import HERE, MONGODB_HOST, MONGODB_PORT, MONGODB_DBNAME, MONGODB_BIOLOGY_TEMPLATE, MONGODB_BIOLOGY_PROPERTY
 from logger import BaseLogger
 from utils import load_xlsx, seg_doc
 
 client = MongoClient(MONGODB_HOST, MONGODB_PORT)
 db = client.get_database(MONGODB_DBNAME)
-collection = db.get_collection(MONGODB_BIOLOGY_TEMPLATE)
+template_collection = db.get_collection(MONGODB_BIOLOGY_TEMPLATE)
+relation_collection = db.get_collection(MONGODB_BIOLOGY_PROPERTY)
 logger = BaseLogger()
 
 
@@ -126,10 +127,31 @@ def write2mongo(info_list):
     :return: 
     """
     for info in info_list:
-        collection.insert(info)
+        template_collection.insert(info)
+
+
+def save2csv():
+    templats_docs = template_collection.find()
+    relation_docs = relation_collection.find()
+    relations = [doc.get('uri', "") for doc in relation_docs if doc.get('uri', "")]
+    for doc in templats_docs:
+        doc_list = []
+        _id = str(doc['_id'])
+        predicate = doc['predicates']
+        key_index = doc['key_index']
+        pattern = doc['pattern']
+        if predicate:
+            if predicate[0] not in relations:
+                print _id, predicate
+
+
 
 if __name__ == "__main__":
-    html_path = os.path.join(HERE, "data/biology_corpus/template_corpus", "template_file.html")
-    _docs = load_html(html_path)
-    _info_list = extract_info(_docs)
-    write2mongo(_info_list)
+    # # 写入mongodb
+    # html_path = os.path.join(HERE, "data/biology_corpus/template_corpus", "template_file.html")
+    # _docs = load_html(html_path)
+    # _info_list = extract_info(_docs)
+    # write2mongo(_info_list)
+
+    # mongodb导出
+    save2csv()

@@ -79,6 +79,6 @@ if __name__ == "__main__":
     # 将三元组写入mongodb
     write2mongodb(BIO_TRIPLE_PATH)
 
-    # 从mongodb导出三元组并进行简单统计
-    target_path = os.path.join()
-    triple_count()
+    # # 从mongodb导出三元组并进行简单统计
+    # target_path = os.path.join()
+    # triple_count()
