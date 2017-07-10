@@ -6,79 +6,34 @@ import os
 from pymongo import MongoClient
 from tqdm import tqdm
 
-from config import MONGODB_HOST, MONGODB_PORT, MONGODB_DBNAME, MONGODB_BIOLOGY_TRIPLE, BIO_TRIPLE_PATH
+from config import MONGODB_HOST, MONGODB_PORT, MONGODB_DBNAME, MONGODB_BIOLOGY_TRIPLE, BIO_TRIPLE_PATH, \
+    MONGODB_BIOLOGY_NODE
 from logger import BaseLogger
-from utils import load_xlsx, seg_doc, _claer
+from utils import seg_doc
 
 client = MongoClient(MONGODB_HOST, MONGODB_PORT)
 db = client.get_database(MONGODB_DBNAME)
-collection = db.get_collection(MONGODB_BIOLOGY_TRIPLE)
+t_collection = db.get_collection(MONGODB_BIOLOGY_TRIPLE)
+n_collection = db.get_collection(MONGODB_BIOLOGY_NODE)
 
 logger = BaseLogger()
 
+node_docs = n_collection.find()  # 读取MONGODB_BIOLOGY_NODE中的数据
 
-def write2mongodb(path, sheets=[], start_row=4):
-    logger.debug('>>> start write2mongodb <<<')
-    logger.debug('load from %s', path)
-    triple_docs = load_xlsx(path, sheets=sheets, start_row=start_row)
-    for doc in triple_docs:
-        if doc:
-            triple_subject = _claer(doc[0])
-            triple_subject_words, triple_subject_tags = seg_doc(triple_subject)
-            triple_predicate = _claer(doc[1])
-            triple_predicate_words, triple_predicate_tags = seg_doc(triple_predicate)
-            triple_object = _claer(doc[2])
-            triple_object_words, triple_object_tags = seg_doc(triple_object)
-            if triple_predicate not in [u'出处']:
-                info = {"triple_subject": triple_subject,
-                        "triple_predicate": triple_predicate,
-                        "triple_object": triple_object,
-                        "triple_subject_index": " ".join(triple_subject_words),
-                        "triple_predicate_index": " ".join(triple_predicate_words),
-                        "triple_object_index": " ".join(triple_object_words)}
-                collection.insert(info)
-            else:
-                logger.debug('@@@@@@@@@@@@@@@@@@@@@@@ ignore triple_doc')
-        else:
-            logger.warn('@@@@@@@@@@@@@@@@@@@@@@@ unexpected values doc is None')
-    logger.debug('>>> end write2mongodb <<<')
-
-
-def triple_count(target_path):
-    logger.debug('>>> start triple_count <<<')
-    triple_docs = collection.find()
-    subjects = set()
-    predicates = set()
-    logger.debug('got triple_docs=%s', len(triple_docs))
-    for doc in triple_docs:
-        subject = doc.get('triple_subject', '')
-        predicate = doc.get('triple_predicate', '')
-        try:
-            assert subject
-            assert predicate
-            subjects.add(subject)
-            predicates.add(predicate)
-        except Exception, e:
-            logger.error(e)
-            logger.error('@@@@@@@@@@@@@@@@@ unexpected values doc=%s',
-                         json.dumps(doc, ensure_ascii=False))
-
-    logger.debug('got subjects=%s, predicates=%s', len(subjects), len(predicates))
-
-    with open(os.path.join(target_path, 'subjects.txt'), 'w') as fr:
-        for item in subjects:
-            fr.write(item.encode('utf-8'))
-            fr.write('\n')
-
-    with open(os.path.join(target_path, 'subjects.txt'), 'w') as fr:
-        for item in predicates:
-            fr.write(item.encode('utf-8'))
-            fr.write('\n')
-
-if __name__ == "__main__":
-    # 将三元组写入mongodb
-    write2mongodb(BIO_TRIPLE_PATH)
-
-    # # 从mongodb导出三元组并进行简单统计
-    # target_path = os.path.join()
-    # triple_count()
+logger.debug('start extract triple and write to %s', MONGODB_BIOLOGY_TRIPLE)
+for doc in tqdm(node_docs):  # 遍历所有节点，读取节点属性信息，并写入到MONGODB_BIOLOGY_TRIPLE中
+    _id = str(doc['_id'])
+    for key in doc.keys():
+        if key not in ['_id', 'update_time', 'label', 'create_time']:  # 过滤
+            if key == 'name':  # 属性为name
+                triple = {"node_id": _id,
+                          "attribute_name": key,
+                          "attribute_date": doc[key]}
+            else:  # 属性非name，attribute_date需要进行拼接
+                triple = {"node_id": _id,
+                          "attribute_name": key,
+                          "attribute_date": "\n".join(doc[key])}
+            words, tags = seg_doc(triple['attribute_date'])
+            triple['attribute_date_index'] = " ".join([w for w in words if w.strip()])
+            logger.debug('triple=%s', json.dumps(triple, ensure_ascii=False))
+            t_collection.insert(triple)
